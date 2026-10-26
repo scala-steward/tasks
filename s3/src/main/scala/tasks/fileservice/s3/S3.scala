@@ -51,9 +51,46 @@ object S3 {
       httpMaxConcurrency: Option[Int],
       httpMaxPendingConnectionAcquires: Option[Int],
       httpConnectionAcquisitionTimeout: Option[FiniteDuration],
+      maxConcurrentRequests: Option[Int]
+  ): Resource[IO, tasks.fileservice.s3.S3] =
+    makeS3ClientResource(
+      regionProfileName,
+      httpMaxConcurrency,
+      httpMaxPendingConnectionAcquires,
+      httpConnectionAcquisitionTimeout,
+      maxConcurrentRequests,
+      Some(50)
+    )
+
+  def makeS3ClientResource(
+      regionProfileName: Option[String],
+      httpMaxConcurrency: Option[Int],
+      httpMaxPendingConnectionAcquires: Option[Int],
+      httpConnectionAcquisitionTimeout: Option[FiniteDuration],
       maxConcurrentRequests: Option[Int],
-      numRetries: Option[Int] = Some(10)
-  ) = {
+      numRetries: Option[Int]
+  ): Resource[IO, tasks.fileservice.s3.S3] =
+    makeS3ClientResource(
+      regionProfileName,
+      httpMaxConcurrency,
+      httpMaxPendingConnectionAcquires,
+      httpConnectionAcquisitionTimeout,
+      None,
+      None,
+      maxConcurrentRequests,
+      numRetries
+    )
+
+  def makeS3ClientResource(
+      regionProfileName: Option[String],
+      httpMaxConcurrency: Option[Int],
+      httpMaxPendingConnectionAcquires: Option[Int],
+      httpConnectionAcquisitionTimeout: Option[FiniteDuration],
+      connectionMaxIdleTime: Option[FiniteDuration],
+      tcpKeepAlive: Option[Boolean],
+      maxConcurrentRequests: Option[Int],
+      numRetries: Option[Int]
+  ): Resource[IO, tasks.fileservice.s3.S3] = {
     val rateLimiter: Resource[IO, Option[Semaphore[IO]]] =
       maxConcurrentRequests match {
         case Some(n) if n > 0 =>
@@ -70,6 +107,8 @@ object S3 {
               httpMaxConcurrency,
               httpMaxPendingConnectionAcquires,
               httpConnectionAcquisitionTimeout,
+              connectionMaxIdleTime,
+              tcpKeepAlive,
               numRetries
             )
 
@@ -78,13 +117,47 @@ object S3 {
       })(v => IO { v.s3.close })
     }
   }
+
+  def makeAWSSDKClient(
+      regionProfileName: Option[String],
+      httpMaxConcurrency: Option[Int],
+      httpMaxPendingConnectionAcquires: Option[Int],
+      httpConnectionAcquisitionTimeout: Option[FiniteDuration]
+  ): S3AsyncClient =
+    makeAWSSDKClient(
+      regionProfileName,
+      httpMaxConcurrency,
+      httpMaxPendingConnectionAcquires,
+      httpConnectionAcquisitionTimeout,
+      Some(50)
+    )
+
   def makeAWSSDKClient(
       regionProfileName: Option[String],
       httpMaxConcurrency: Option[Int],
       httpMaxPendingConnectionAcquires: Option[Int],
       httpConnectionAcquisitionTimeout: Option[FiniteDuration],
-      numRetries: Option[Int] = Some(10)
-  ) = {
+      numRetries: Option[Int]
+  ): S3AsyncClient =
+    makeAWSSDKClient(
+      regionProfileName,
+      httpMaxConcurrency,
+      httpMaxPendingConnectionAcquires,
+      httpConnectionAcquisitionTimeout,
+      None,
+      None,
+      numRetries
+    )
+
+  def makeAWSSDKClient(
+      regionProfileName: Option[String],
+      httpMaxConcurrency: Option[Int],
+      httpMaxPendingConnectionAcquires: Option[Int],
+      httpConnectionAcquisitionTimeout: Option[FiniteDuration],
+      connectionMaxIdleTime: Option[FiniteDuration],
+      tcpKeepAlive: Option[Boolean],
+      numRetries: Option[Int]
+  ): S3AsyncClient = {
     val builder = S3AsyncClient
       .builder()
       .credentialsProvider(DefaultCredentialsProvider.create())
@@ -107,21 +180,24 @@ object S3 {
           .build()
       )
     }
-    if (
-      httpMaxConcurrency.isDefined ||
-      httpMaxPendingConnectionAcquires.isDefined ||
-      httpConnectionAcquisitionTimeout.isDefined
-    ) {
-      val nettyBuilder = NettyNioAsyncHttpClient.builder()
-      httpMaxConcurrency.foreach(nettyBuilder.maxConcurrency(_))
-      httpMaxPendingConnectionAcquires.foreach(
-        nettyBuilder.maxPendingConnectionAcquires(_)
+    val idleTime: Duration =
+      connectionMaxIdleTime.fold(Duration.ofSeconds(2))(d =>
+        Duration.ofNanos(d.toNanos)
       )
-      httpConnectionAcquisitionTimeout.foreach(d =>
-        nettyBuilder.connectionAcquisitionTimeout(Duration.ofNanos(d.toNanos))
-      )
-      builder.httpClient(nettyBuilder.build()).build()
-    } else builder.build()
+    val keepAlive: java.lang.Boolean =
+      Boolean.box(tcpKeepAlive.getOrElse(true))
+    val nettyBuilder = NettyNioAsyncHttpClient
+      .builder()
+      .connectionMaxIdleTime(idleTime)
+      .tcpKeepAlive(keepAlive)
+    httpMaxConcurrency.foreach(nettyBuilder.maxConcurrency(_))
+    httpMaxPendingConnectionAcquires.foreach(
+      nettyBuilder.maxPendingConnectionAcquires(_)
+    )
+    httpConnectionAcquisitionTimeout.foreach(d =>
+      nettyBuilder.connectionAcquisitionTimeout(Duration.ofNanos(d.toNanos))
+    )
+    builder.httpClient(nettyBuilder.build()).build()
   }
 
   // S3 multipart limits:
