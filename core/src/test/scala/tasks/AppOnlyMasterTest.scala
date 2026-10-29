@@ -105,7 +105,7 @@ tasks.elastic.logQueueStatus = false
     elasticResource
   ).allocated.unsafeRunSync()
 
-  implicit val system: TaskSystemComponents = pair._1._1
+  implicit val system: ExtendedTaskSystemComponents = pair._1._1
 
   import AppOnlyMasterTest._
 

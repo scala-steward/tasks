@@ -254,7 +254,7 @@ package object tasks extends MacroCalls {
     )
 
   implicit def tasksConfig(implicit
-      component: TaskSystemComponentsBase
+      component: TaskSystemComponents
   ): TasksConfig =
     component.tasksConfig
 
@@ -263,18 +263,18 @@ package object tasks extends MacroCalls {
   ): CodeVersion = c.codeVersion
 
   implicit def fs(implicit
-      component: TaskSystemComponentsBase
+      component: TaskSystemComponents
   ): FileServiceComponent =
     component.fs
 
   implicit def ts(implicit
       component: ComputationEnvironment
-  ): TaskSystemComponentsBase =
+  ): TaskSystemComponents =
     component.components
 
   implicit def tsParent(implicit
       component: ParentComputationEnvironment
-  ): TaskSystemComponents =
+  ): ExtendedTaskSystemComponents =
     component.components
 
   implicit def launcherName(implicit
@@ -291,7 +291,7 @@ package object tasks extends MacroCalls {
     component.appendLog(LogRecord(data, java.time.Instant.now))
 
   def withTaskSystem[T](
-      f: TaskSystemComponents => IO[T]
+      f: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] =
     withTaskSystem(
       config = None,
@@ -305,7 +305,7 @@ package object tasks extends MacroCalls {
       s3Client: Resource[IO, Option[S3Client]],
       elasticSupport: Resource[IO, Option[elastic.ElasticSupport]]
   )(
-      f: TaskSystemComponents => IO[T]
+      f: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] =
     withTaskSystem(
       config = Some(config),
@@ -315,7 +315,7 @@ package object tasks extends MacroCalls {
     )(f)
 
   def withTaskSystem[T](c: Config)(
-      f: TaskSystemComponents => IO[T]
+      f: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] =
     withTaskSystem(
       config = Some(c),
@@ -325,7 +325,7 @@ package object tasks extends MacroCalls {
     )(f)
 
   def withTaskSystem[T](config: Option[Config])(
-      f: TaskSystemComponents => IO[T]
+      f: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] =
     withTaskSystem(
       config = config,
@@ -340,7 +340,7 @@ package object tasks extends MacroCalls {
       elasticSupport: Resource[IO, Option[elastic.ElasticSupport]],
       externalQueueState: Resource[IO, Option[Transaction[QueueImpl.State]]]
   )(
-      f: TaskSystemComponents => IO[T]
+      f: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] =
     withTaskSystem(
       config = Some(ConfigFactory.parseString(config)),
@@ -353,7 +353,7 @@ package object tasks extends MacroCalls {
       config: Config,
       mainProcessResource: Resource[IO, Unit]
   )(
-      f: TaskSystemComponents => IO[T]
+      f: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] =
     withTaskSystem(
       config = Some(config),
@@ -364,7 +364,7 @@ package object tasks extends MacroCalls {
       config: Option[Config],
       mainProcessResource: Resource[IO, Unit]
   )(
-      f: TaskSystemComponents => IO[T]
+      f: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] =
     withTaskSystem(
       config = config,
@@ -389,7 +389,7 @@ package object tasks extends MacroCalls {
       ] = Resource.pure[IO, org.typelevel.otel4s.metrics.MeterProvider[IO]](
         org.typelevel.otel4s.metrics.MeterProvider.noop[IO]
       )
-  )(f: TaskSystemComponents => IO[T]): IO[Either[ExitCode, T]] =
+  )(f: ExtendedTaskSystemComponents => IO[T]): IO[Either[ExitCode, T]] =
     withTaskSystem(
       config = config,
       s3Client = s3Client,
@@ -409,7 +409,7 @@ package object tasks extends MacroCalls {
         org.typelevel.otel4s.metrics.MeterProvider[IO]
       ],
       mainProcessResource: Resource[IO, Unit]
-  )(f: TaskSystemComponents => IO[T]): IO[Either[ExitCode, T]] = {
+  )(f: ExtendedTaskSystemComponents => IO[T]): IO[Either[ExitCode, T]] = {
 
     val resource = Resource.eval(Deferred[IO, ExitCode]).flatMap { exitCode =>
       defaultTaskSystem(
@@ -440,7 +440,7 @@ package object tasks extends MacroCalls {
   }
 
   def defaultTaskSystem
-      : Resource[IO, (TaskSystemComponents, HostConfiguration)] =
+      : Resource[IO, (ExtendedTaskSystemComponents, HostConfiguration)] =
     Resource.eval(Deferred[IO, ExitCode]).flatMap { exitCode =>
       defaultTaskSystem(
         config = None,
@@ -455,7 +455,7 @@ package object tasks extends MacroCalls {
       config: String,
       s3Client: Resource[IO, Option[S3Client]],
       elasticSupport: Resource[IO, Option[elastic.ElasticSupport]]
-  ): Resource[IO, (TaskSystemComponents, HostConfiguration)] =
+  ): Resource[IO, (ExtendedTaskSystemComponents, HostConfiguration)] =
     Resource.eval(Deferred[IO, ExitCode]).flatMap { exitCode =>
       defaultTaskSystem(
         config = Some(ConfigFactory.parseString(config)),
@@ -470,7 +470,7 @@ package object tasks extends MacroCalls {
       s3Client: Resource[IO, Option[S3Client]],
       elasticSupport: Resource[IO, Option[elastic.ElasticSupport]],
       externalQueueState: Resource[IO, Option[Transaction[QueueImpl.State]]]
-  ): Resource[IO, (TaskSystemComponents, HostConfiguration)] =
+  ): Resource[IO, (ExtendedTaskSystemComponents, HostConfiguration)] =
     Resource.eval(Deferred[IO, ExitCode]).flatMap { exitCode =>
       defaultTaskSystem(
         config = Some(ConfigFactory.parseString(config)),
@@ -482,7 +482,7 @@ package object tasks extends MacroCalls {
     }
   def defaultTaskSystem(
       config: String
-  ): Resource[IO, (TaskSystemComponents, HostConfiguration)] =
+  ): Resource[IO, (ExtendedTaskSystemComponents, HostConfiguration)] =
     Resource.eval(Deferred[IO, ExitCode]).flatMap { exitCode =>
       defaultTaskSystem(
         config = Some(ConfigFactory.parseString(config)),
@@ -495,7 +495,7 @@ package object tasks extends MacroCalls {
 
   def defaultTaskSystem(
       config: Option[Config]
-  ): Resource[IO, (TaskSystemComponents, HostConfiguration)] =
+  ): Resource[IO, (ExtendedTaskSystemComponents, HostConfiguration)] =
     Resource.eval(Deferred[IO, ExitCode]).flatMap { exitCode =>
       defaultTaskSystem(
         config = config,
@@ -525,7 +525,7 @@ package object tasks extends MacroCalls {
       ] = Resource.pure[IO, org.typelevel.otel4s.metrics.MeterProvider[IO]](
         org.typelevel.otel4s.metrics.MeterProvider.noop[IO]
       )
-  ): Resource[IO, (TaskSystemComponents, HostConfiguration)] =
+  ): Resource[IO, (ExtendedTaskSystemComponents, HostConfiguration)] =
     defaultTaskSystem(
       config = config,
       s3Client = s3Client,
@@ -547,7 +547,7 @@ package object tasks extends MacroCalls {
         org.typelevel.otel4s.metrics.MeterProvider[IO]
       ],
       mainProcessResource: Resource[IO, Unit]
-  ): Resource[IO, (TaskSystemComponents, HostConfiguration)] = {
+  ): Resource[IO, (ExtendedTaskSystemComponents, HostConfiguration)] = {
 
     val configuration = () => {
       ConfigFactory.invalidateCaches()
@@ -567,7 +567,7 @@ package object tasks extends MacroCalls {
           .getOrElse(hostConfigChosenFromConfig)
       )
 
-    TaskSystemComponents.make(
+    ExtendedTaskSystemComponents.make(
       hostConfig = hostConfig,
       elasticSupport = elasticSupport,
       s3ClientResource = s3Client,
@@ -598,7 +598,7 @@ package object tasks extends MacroCalls {
 
   def fromFileList[O](files: Seq[Seq[String]], parallelism: Int)(
       fromFiles: Seq[SharedFile] => O
-  )(full: => IO[O])(implicit tsc: TaskSystemComponentsBase): IO[O] = {
+  )(full: => IO[O])(implicit tsc: TaskSystemComponents): IO[O] = {
     val filesWithNonEmptyPath = files.filter(_.nonEmpty)
     for {
       maybeSharedFiles <- IO.parSequenceN(parallelism)(

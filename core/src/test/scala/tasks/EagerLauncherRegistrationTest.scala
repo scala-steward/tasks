@@ -36,7 +36,7 @@ object EagerLauncherRegistrationTest extends TestHelpers {
 
   private def taskSystem(
       queueStateRef: Ref[IO, QueueImpl.State]
-  ): Resource[IO, TaskSystemComponents] =
+  ): Resource[IO, ExtendedTaskSystemComponents] =
     Resource
       .eval(Deferred[IO, cats.effect.ExitCode])
       .flatMap { exitCode =>

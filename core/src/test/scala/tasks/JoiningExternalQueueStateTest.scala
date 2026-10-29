@@ -39,7 +39,7 @@ object JoiningExternalQueueStateTest extends TestHelpers {
   def mainProcess(
       queueStateRef: Ref[IO, QueueImpl.State],
       clearOnJoin: Boolean
-  ): Resource[IO, TaskSystemComponents] =
+  ): Resource[IO, ExtendedTaskSystemComponents] =
     Resource
       .eval(cats.effect.kernel.Deferred[IO, cats.effect.ExitCode])
       .flatMap { exitCode =>

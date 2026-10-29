@@ -122,7 +122,7 @@ tasks.failuredetector.heartbeat-interval = 200 ms
   }
 
   val pair = defaultTaskSystem(Some(testConfig)).allocated.unsafeRunSync()
-  implicit val system: TaskSystemComponents = pair._1._1
+  implicit val system: ExtendedTaskSystemComponents = pair._1._1
   import RecursiveCachedTaskTestSuite._
 
   test("recursive fibonacci via parent task") {

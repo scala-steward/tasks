@@ -164,7 +164,7 @@ tasks.elastic.logQueueStatus = false
       .eval(LocalShellElasticSupport.make(shellConfig))
       .map(Some(_))
   ).allocated.unsafeRunSync()
-  implicit val system: TaskSystemComponents = pair._1._1
+  implicit val system: ExtendedTaskSystemComponents = pair._1._1
   import RemoteSpawnTaskTest._
 
   test("task from parent on remote node") {

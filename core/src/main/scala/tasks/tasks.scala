@@ -107,7 +107,7 @@ final class TaskDefinition[A: Serializer: FilePrefix, B: Deserializer](
       priorityBase: Priority = Priority(0),
       labels: Labels = Labels.empty,
       noCache: Boolean = false
-  )(implicit components: TaskSystemComponents): IO[B] = {
+  )(implicit components: ExtendedTaskSystemComponents): IO[B] = {
     implicit val queue = components.queue
     implicit val cache = components.cache
     implicit val prefix = components.filePrefix
@@ -165,7 +165,7 @@ final class ParentTaskDefinition[A: Serializer: FilePrefix, B: Deserializer](
       priorityBase: Priority = Priority(0),
       labels: Labels = Labels.empty,
       noCache: Boolean = false
-  )(implicit components: TaskSystemComponents): IO[B] = {
+  )(implicit components: ExtendedTaskSystemComponents): IO[B] = {
     implicit val queue = components.queue
     implicit val cache = components.cache
     implicit val prefix = components.filePrefix

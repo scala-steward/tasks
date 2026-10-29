@@ -46,7 +46,7 @@ object JvmElasticSupport {
 
   case class State(
       taskSystems: List[
-        (String, FiberIO[((TaskSystemComponents, HostConfiguration), IO[Unit])])
+        (String, FiberIO[((ExtendedTaskSystemComponents, HostConfiguration), IO[Unit])])
       ],
       nodesShutdown: List[String]
   )

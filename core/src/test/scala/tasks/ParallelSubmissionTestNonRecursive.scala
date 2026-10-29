@@ -117,7 +117,7 @@ tasks.failuredetector.heartbeat-interval = 200 ms
     .replace()
 
   val pair = defaultTaskSystem(Some(testConfig)).allocated.unsafeRunSync()
-  implicit val system: TaskSystemComponents = pair._1._1
+  implicit val system: ExtendedTaskSystemComponents = pair._1._1
   import ParallelSubmissionTestNonRecursive._
 
   test("parallel submission of non-recursive task with 'gpu' counting ") {

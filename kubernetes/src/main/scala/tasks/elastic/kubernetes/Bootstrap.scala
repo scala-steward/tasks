@@ -18,7 +18,7 @@ import io.k8s.apimachinery.pkg.api.resource.Quantity
 import scala.util.Try
 import com.goyeau.kubernetes.client.KubernetesClient
 import cats.effect.IO
-import tasks.TaskSystemComponents
+import tasks.ExtendedTaskSystemComponents
 import com.google.cloud.tools.jib.api.LogEvent
 import com.google.cloud.tools.jib.api.LogEvent.Level.LIFECYCLE
 import com.google.cloud.tools.jib.api.LogEvent.Level.PROGRESS
@@ -69,7 +69,7 @@ object Bootstrap {
       k8sRequestRamMB: Int = 500,
       k8sRequestEphemeralMB: Int = 0
   )(
-      useTs: TaskSystemComponents => IO[T]
+      useTs: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] = {
 
     val hostname = System.getenv(k8sConfig.hostNameOrIPEnvVar)

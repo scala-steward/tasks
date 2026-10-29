@@ -62,7 +62,7 @@ tasks.fileservice.storageURI=${tmp.getAbsolutePath}
   }
 
   val pair = defaultTaskSystem(Some(testConfig)).allocated.unsafeRunSync()
-  implicit val system: TaskSystemComponents = pair._1._1
+  implicit val system: ExtendedTaskSystemComponents = pair._1._1
   import ReplicatedTaskEndToEndTest._
 
   test("the caller gets the first copy to exit, and more than one copy runs") {

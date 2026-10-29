@@ -39,7 +39,7 @@ import com.github.plokhotnyuk.jsoniter_scala.core._
 
 import java.time.Instant
 import cats.effect.IO
-import tasks.TaskSystemComponents
+import tasks.ExtendedTaskSystemComponents
 import tasks.caching.TaskResultCache
 import tasks.util.Messenger
 import tasks.queue.Launcher.LauncherHandle
@@ -153,7 +153,7 @@ private[tasks] object UntypedResult {
 }
 
 sealed trait ComputationEnvironment {
-  implicit def components: TaskSystemComponentsBase
+  implicit def components: TaskSystemComponents
   implicit def launcher: LauncherHandle
   def taskActor: Task
   def taskHash: HashedTaskDescription
@@ -173,7 +173,7 @@ sealed trait ComputationEnvironment {
   implicit def filePrefix: FileServicePrefix
   implicit def prefix: Prefix
 
-  def toTaskSystemComponents: TaskSystemComponentsBase
+  def toExtendedTaskSystemComponents: TaskSystemComponents
 }
 
 sealed trait LeafComputationEnvironment extends ComputationEnvironment {
@@ -181,15 +181,15 @@ sealed trait LeafComputationEnvironment extends ComputationEnvironment {
 }
 
 sealed trait ParentComputationEnvironment extends ComputationEnvironment {
-  implicit def components: TaskSystemComponents
+  implicit def components: ExtendedTaskSystemComponents
   implicit def queue: Queue
   implicit def cache: TaskResultCache
-  def toTaskSystemComponents: TaskSystemComponents
+  def toExtendedTaskSystemComponents: ExtendedTaskSystemComponents
 }
 
 private[tasks] final class RuntimeComputationEnvironment(
     val resourceAllocated: ResourceAllocated,
-    implicit val components: TaskSystemComponents,
+    implicit val components: ExtendedTaskSystemComponents,
     implicit val launcher: LauncherHandle,
     val taskActor: Task,
     val taskHash: HashedTaskDescription,
@@ -246,7 +246,7 @@ private[tasks] final class RuntimeComputationEnvironment(
   implicit def prefix: Prefix =
     Prefix(if (filePrefixValue.isEmpty) taskHash.dataHash else filePrefixValue)
 
-  def toTaskSystemComponents: TaskSystemComponents = components
+  def toExtendedTaskSystemComponents: ExtendedTaskSystemComponents = components
 }
 
 private[tasks] class Task(
@@ -326,7 +326,7 @@ private[tasks] class Task(
       )
       val ce = new RuntimeComputationEnvironment(
         resourceAllocated = resourceAllocated,
-        components = new TaskSystemComponents(
+        components = new ExtendedTaskSystemComponents(
           queue = queue,
           fs = fileServiceComponent,
           cache = cache,

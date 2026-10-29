@@ -58,7 +58,7 @@ import cats.effect.kernel.Deferred
 import cats.effect.kernel.Ref
 import cats.effect.ExitCode
 
-sealed trait TaskSystemComponentsBase {
+sealed trait TaskSystemComponents {
   private[tasks] def fs: FileServiceComponent
   private[tasks] def nodeLocalCache: NodeLocalCache.State
   private[tasks] def filePrefix: FileServicePrefix
@@ -70,15 +70,15 @@ sealed trait TaskSystemComponentsBase {
   private[tasks] def messenger: Messenger
   private[tasks] def sessionId: String
 
-  def withChildPrefix(name: String): TaskSystemComponentsBase
-  def withChildPrefix(names: Seq[String]): TaskSystemComponentsBase
-  def replaceFilePrefix(names: Seq[String]): TaskSystemComponentsBase
+  def withChildPrefix(name: String): TaskSystemComponents
+  def withChildPrefix(names: Seq[String]): TaskSystemComponents
+  def replaceFilePrefix(names: Seq[String]): TaskSystemComponents
   def withFilePrefix[B](
       prefix: Seq[String]
-  )(fun: TaskSystemComponentsBase => B): B
+  )(fun: TaskSystemComponents => B): B
 }
 
-case class TaskSystemComponents private[tasks] (
+case class ExtendedTaskSystemComponents private[tasks] (
     private[tasks] val queue: Queue,
     private[tasks] val fs: FileServiceComponent,
     private[tasks] val cache: TaskResultCache,
@@ -91,24 +91,24 @@ case class TaskSystemComponents private[tasks] (
     private[tasks] val lineage: TaskLineage,
     private[tasks] val messenger: Messenger,
     private[tasks] val sessionId: String
-) extends TaskSystemComponentsBase {
+) extends TaskSystemComponents {
 
-  override def withChildPrefix(name: String): TaskSystemComponents =
+  override def withChildPrefix(name: String): ExtendedTaskSystemComponents =
     this.copy(filePrefix = this.filePrefix.append(name))
 
-  override def withChildPrefix(names: Seq[String]): TaskSystemComponents =
+  override def withChildPrefix(names: Seq[String]): ExtendedTaskSystemComponents =
     this.copy(filePrefix = this.filePrefix.append(names))
 
-  override def replaceFilePrefix(names: Seq[String]): TaskSystemComponents =
+  override def replaceFilePrefix(names: Seq[String]): ExtendedTaskSystemComponents =
     this.copy(filePrefix = FileServicePrefix(names.toVector))
 
   override def withFilePrefix[B](
       prefix: Seq[String]
-  )(fun: TaskSystemComponentsBase => B): B =
+  )(fun: TaskSystemComponents => B): B =
     fun(this.withChildPrefix(prefix))
 }
 
-object TaskSystemComponents {
+object ExtendedTaskSystemComponents {
   private[tasks] def make(
       hostConfig: Resource[IO, HostConfiguration],
       elasticSupport: Resource[IO, Option[ElasticSupport]],
@@ -121,7 +121,7 @@ object TaskSystemComponents {
         org.typelevel.otel4s.metrics.MeterProvider[IO]
       ],
       mainProcessResource: Resource[IO, Unit]
-  ): Resource[IO, (TaskSystemComponents, HostConfiguration)] =
+  ): Resource[IO, (ExtendedTaskSystemComponents, HostConfiguration)] =
     hostConfig.flatMap { hostConfig =>
       elasticSupport.attempt
         .map {
@@ -804,7 +804,7 @@ object TaskSystemComponents {
               cache: TaskResultCache,
               nodeLocalCache: NodeLocalCache.State,
               messenger: Messenger
-          ) = TaskSystemComponents(
+          ) = ExtendedTaskSystemComponents(
             queue = queue,
             fs = fileServiceComponent,
             cache = cache,

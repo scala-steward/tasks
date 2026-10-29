@@ -40,7 +40,7 @@ import scala.jdk.CollectionConverters._
 import cats.effect.IO
 import cats.effect.ExitCode
 import cats.effect.kernel.Resource
-import tasks.TaskSystemComponents
+import tasks.ExtendedTaskSystemComponents
 import tasks.withTaskSystem
 import tasks.fileservice.s3.S3Client
 
@@ -76,7 +76,7 @@ object Bootstrap {
       batchRequestCpu: Int = 1,
       batchRequestMemoryMB: Int = 512
   )(
-      useTs: TaskSystemComponents => IO[T]
+      useTs: ExtendedTaskSystemComponents => IO[T]
   ): IO[Either[ExitCode, T]] = {
 
     val batchJobId = Option(System.getenv("AWS_BATCH_JOB_ID"))

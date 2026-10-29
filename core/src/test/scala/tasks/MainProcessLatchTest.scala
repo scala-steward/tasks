@@ -35,12 +35,12 @@ object MainProcessLatchTest extends TestHelpers {
 
   def mainProcess(
       queueStateRef: Ref[IO, QueueImpl.State]
-  ): Resource[IO, TaskSystemComponents] = mainProcess(queueStateRef, true)
+  ): Resource[IO, ExtendedTaskSystemComponents] = mainProcess(queueStateRef, true)
 
   def mainProcess(
       queueStateRef: Ref[IO, QueueImpl.State],
       clearWhenLastExits: Boolean
-  ): Resource[IO, TaskSystemComponents] =
+  ): Resource[IO, ExtendedTaskSystemComponents] =
     Resource
       .eval(cats.effect.kernel.Deferred[IO, cats.effect.ExitCode])
       .flatMap { exitCode =>

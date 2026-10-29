@@ -83,7 +83,7 @@ object KubernetesTest extends IOApp {
       )
     )
 
-  def useTs(implicit ts: TaskSystemComponents): IO[Unit] = {
+  def useTs(implicit ts: ExtendedTaskSystemComponents): IO[Unit] = {
     val f1 = testTask(("1"))(ResourceRequest(1, 500))
 
     val f2 = f1.flatMap(_ => testTask(("2"))(ResourceRequest(1, 500)))

@@ -29,8 +29,8 @@ package tasks.fileservice
 
 import java.io.File
 import tasks.util.Uri
+import tasks.ExtendedTaskSystemComponents
 import tasks.TaskSystemComponents
-import tasks.TaskSystemComponentsBase
 import tasks.Implicits._
 import tasks.HasSharedFiles
 import tasks.fs
@@ -79,40 +79,40 @@ case class SharedFile(
   override def toString =
     s"SharedFile($path, size=$byteSize, hash=$hash)"
 
-  def file(implicit tsc: TaskSystemComponentsBase): Resource[IO, File] =
+  def file(implicit tsc: TaskSystemComponents): Resource[IO, File] =
     SharedFileHelper.getPathToFile(this)
 
-  def filePersistent(implicit tsc: TaskSystemComponentsBase): Resource[IO, File] =
+  def filePersistent(implicit tsc: TaskSystemComponents): Resource[IO, File] =
     SharedFileHelper.getPathToFile(this, keepLocalCache = true)
 
-  def fileNonCached(implicit tsc: TaskSystemComponentsBase): Resource[IO, File] =
+  def fileNonCached(implicit tsc: TaskSystemComponents): Resource[IO, File] =
     SharedFileHelper.getPathToFileNonCachedFile(this)
 
-  def history(implicit tsc: TaskSystemComponentsBase): IO[History] =
+  def history(implicit tsc: TaskSystemComponents): IO[History] =
     SharedFileHelper.getHistory(this)
 
-  def stream(implicit tsc: TaskSystemComponentsBase): Stream[IO, Byte] =
+  def stream(implicit tsc: TaskSystemComponents): Stream[IO, Byte] =
     SharedFileHelper.stream(this, 0L)
 
   def stream(fromOffset: Long)(implicit
-      tsc: TaskSystemComponentsBase
+      tsc: TaskSystemComponents
   ): Stream[IO, Byte] =
     SharedFileHelper.stream(this, fromOffset)
 
-  def isAccessible(implicit tsc: TaskSystemComponentsBase): IO[Boolean] =
+  def isAccessible(implicit tsc: TaskSystemComponents): IO[Boolean] =
     SharedFileHelper.isAccessible(this, true)
 
-  def uri(implicit tsc: TaskSystemComponentsBase): IO[Uri] =
+  def uri(implicit tsc: TaskSystemComponents): IO[Uri] =
     SharedFileHelper.getUri(this)
 
   def name: String = path.name
 
-  def delete(implicit tsc: TaskSystemComponentsBase): IO[Boolean] =
+  def delete(implicit tsc: TaskSystemComponents): IO[Boolean] =
     SharedFileHelper.delete(this)
 
-  def utf8(implicit tsc: TaskSystemComponentsBase): IO[String] =
+  def utf8(implicit tsc: TaskSystemComponents): IO[String] =
     stream(0L).through(fs2.text.utf8.decode).compile.string
-  def bytes(implicit tsc: TaskSystemComponentsBase): IO[scodec.bits.ByteVector] =
+  def bytes(implicit tsc: TaskSystemComponents): IO[scodec.bits.ByteVector] =
     stream.compile.to(scodec.bits.ByteVector)
 }
 
@@ -120,13 +120,13 @@ object SharedFile {
 
   implicit val codec: JsonValueCodec[SharedFile] = JsonCodecMaker.make
 
-  def apply(uri: Uri)(implicit tsc: TaskSystemComponentsBase): IO[SharedFile] =
+  def apply(uri: Uri)(implicit tsc: TaskSystemComponents): IO[SharedFile] =
     SharedFileHelper.create(RemoteFilePath(uri), tsc.fs.remote)
 
   def fromFolder(parallelism: Int)(
       callback: File => List[File]
   )(implicit ce: ComputationEnvironment): IO[Seq[SharedFile]] = {
-    val tsc = ce.toTaskSystemComponents
+    val tsc = ce.toExtendedTaskSystemComponents
     SharedFileHelper.createFromFolder(parallelism)(callback)(
       tsc.filePrefix,
       tsc.fs,
@@ -137,7 +137,7 @@ object SharedFile {
 
   def getByName(
       name: String
-  )(implicit tsc: TaskSystemComponentsBase): IO[Option[SharedFile]] =
+  )(implicit tsc: TaskSystemComponents): IO[Option[SharedFile]] =
     SharedFileHelper.getByName(name, retrieveSizeAndHash = true)
 
   def scoped(file: File, suffix: String)(implicit
@@ -148,7 +148,7 @@ object SharedFile {
   def scoped(file: File, suffix: String, deleteFile: Boolean)(implicit
       ce: ComputationEnvironment
   ): IO[SharedFile] = {
-    val tsc = ce.toTaskSystemComponents
+    val tsc = ce.toExtendedTaskSystemComponents
     SharedFileHelper.createFromFile(file, suffix, deleteFile)(
       tsc.filePrefix.append(ce.prefix.value),
       tsc.fs,
@@ -160,7 +160,7 @@ object SharedFile {
   def scoped(source: Stream[IO, Byte], suffix: String)(implicit
       ce: ComputationEnvironment
   ): IO[SharedFile] = {
-    val tsc = ce.toTaskSystemComponents
+    val tsc = ce.toExtendedTaskSystemComponents
     SharedFileHelper.createFromStream(source, suffix)(
       tsc.filePrefix.append(ce.prefix.value),
       tsc.fs,
@@ -177,7 +177,7 @@ object SharedFile {
   def scopedSink(suffix: String)(implicit
       ce: ComputationEnvironment
   ): Pipe[IO, Byte, SharedFile] = {
-    val tsc = ce.toTaskSystemComponents
+    val tsc = ce.toExtendedTaskSystemComponents
     SharedFileHelper.sink(suffix)(
       tsc.filePrefix.append(ce.prefix.value),
       tsc.fs,
@@ -194,7 +194,7 @@ object SharedFile {
   def unscoped(file: File, suffix: String, deleteFile: Boolean)(implicit
       ce: ComputationEnvironment
   ): IO[SharedFile] = {
-    val tsc = ce.toTaskSystemComponents
+    val tsc = ce.toExtendedTaskSystemComponents
     SharedFileHelper.createFromFile(file, suffix, deleteFile)(
       tsc.filePrefix,
       tsc.fs,
@@ -206,7 +206,7 @@ object SharedFile {
   def unscoped(source: Stream[IO, Byte], suffix: String)(implicit
       ce: ComputationEnvironment
   ): IO[SharedFile] = {
-    val tsc = ce.toTaskSystemComponents
+    val tsc = ce.toExtendedTaskSystemComponents
     SharedFileHelper.createFromStream(source, suffix)(
       tsc.filePrefix,
       tsc.fs,
@@ -223,7 +223,7 @@ object SharedFile {
   def unscopedSink(suffix: String)(implicit
       ce: ComputationEnvironment
   ): Pipe[IO, Byte, SharedFile] = {
-    val tsc = ce.toTaskSystemComponents
+    val tsc = ce.toExtendedTaskSystemComponents
     SharedFileHelper.sink(suffix)(
       tsc.filePrefix,
       tsc.fs,
